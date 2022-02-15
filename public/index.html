@@ -120,7 +120,7 @@
         bookmarkletInput.innerText = bookmarklet;
 
         // log a search engine shortcut
-        const searchEngine = `https://ytd.ionnet.io${port}?url=%s&format=auto`;
+        const searchEngine = `${window.location.protocol}//${window.location.host}${port}?url=%s&format=auto`;
         const searchEngineInput = document.querySelector("#shortcut-search-engine");
         searchEngineInput.innerText = searchEngine;
       </script>
