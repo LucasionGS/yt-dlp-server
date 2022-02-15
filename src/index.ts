@@ -5,6 +5,7 @@ import fs from "fs";
 import Path from "path";
 import WebSocket from "ws";
 import http from "http";
+import { fips } from "crypto";
 
 const PORT = process.env.PORT || 3333;
 const ytdlpDirectory = Path.resolve(os.homedir(), ".yt-dlp-server");
@@ -22,6 +23,11 @@ setInterval(() => {
   const now = Date.now();
   Object.keys(cachedDownloads).forEach(key => {
     if (cachedDownloads[key].expires < now) {
+      const dl = cachedDownloads[key];
+      const filename = dl.id + "." + dl.extension;
+      if (fs.existsSync(Path.join(DOWNLOAD_DIR, filename))) {
+        fs.unlinkSync(Path.join(DOWNLOAD_DIR, filename));
+      }
       delete cachedDownloads[key];
     }
   });
