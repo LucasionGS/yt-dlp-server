@@ -9,7 +9,8 @@
   "scripts": {
     "compile": "tsc",
     "watch": "tsc -w",
-    "start": "node ."
+    "start": "node .",
+    "compose": "docker-compose up --build -d"
   },
   "keywords": [],
   "author": "ion",
