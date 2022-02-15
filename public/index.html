@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/index.css">
+  <title>YouTube Downloader</title>
+</head>
+<body>
+  <div class="container">
+    <div class="flex center">
+      <h1>YouTube Downloader</h1>
+      <p>
+        Enter a url to download the video.
+        YouTube URLs or another <a target="_blank" href="https://ytdl-org.github.io/youtube-dl/supportedsites.html">supported site</a> URL can be used.
+      </p>
+      <form id="download-form" action="./download" method="post">
+        <input class="left" type="url" name="url" placeholder="Enter URL" autocomplete="off" required>
+        <button id="download-button" class="right">Download</button>
+      </form>
+      <script>
+        const form = document.querySelector("form");
+        const downloadButton = document.querySelector("#download-button");
+        form.addEventListener("submit", async (e) => {
+          e.preventDefault();
+          downloadButton.innerHTML = "Downloading...";
+          downloadButton.disabled = true;
+          const formData = new FormData(form);
+          const response = await fetch(form.action, {
+            method: "POST",
+            body: JSON.stringify({
+              url: formData.get("url")
+            }),
+            headers: {
+              "Content-Type": "application/json"
+            }
+          }).then(res => res.json())
+          .catch(err => {
+            console.log(err)
+            alert("An error occurred. Please try again.");
+            downloadButton.innerHTML = "Download";
+            downloadButton.disabled = false;
+          });
+          window.location.pathname = `/progress/${response.id}`;
+        });
+      </script>
+    </div>
+  </div>
+</body>
+</html>

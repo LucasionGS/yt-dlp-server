@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/index.css">
+  <title>YouTube Downloader</title>
+</head>
+<body>
+  <div class="container">
+    <div class="flex">
+      <h1>Downloading video...</h1>
+      <h3 id="metadata-text"></h3>
+      <p id="progress-text"></p>
+      <div class="progress-bar">
+        <div class="progress-bar-fill" style="width: 0%;"></div>
+      </div>
+      <div>
+        <br>
+        <a hidden id="download-button" href="#">
+          <button>Download</button>
+        </a>
+      </div>
+      <script>
+        const id = window.location.pathname.split('/').pop();
+        const progressBar = document.querySelector("div.progress-bar-fill");
+        const metadataText = document.querySelector("#metadata-text");
+        const progressText = document.querySelector("#progress-text");
+        const downloadButton = document.querySelector("#download-button");
+
+        const host = window.location.hostname;
+        const port = window.location.port;
+        const protocol = window.location.protocol;
+        const socketUrl = `${protocol.replace("http", "ws")}//${host}:${port}`;
+        const ws = new WebSocket(socketUrl);
+
+        ws.addEventListener("open", () => {
+          ws.send(JSON.stringify({
+            id: id
+          }));
+        });
+
+        ws.addEventListener("message", msg => {
+          const data = JSON.parse(msg.data);
+          const {
+            code,
+            currentSpeed,
+            eta,
+            percent,
+            totalSize,
+
+            // On first message, set metadata
+            name,
+            title,
+            extractor
+          } = data;
+
+          if (title) {
+            metadataText.innerHTML = `[${extractor}] ${title}`;
+          }
+
+          if (typeof code === "number") {
+            progressBar.style.width = `100%`;
+            progressText.innerHTML = `Finished downloading`;
+            ws.close();
+            downloadButton.hidden = false;
+            downloadButton.href = `/download/${id}`;
+            return window.location.pathname = `/download/${id}`;
+          }
+
+          progressBar.style.width = `${percent}%`;
+          progressText.innerHTML = `${percent}% (${currentSpeed ?? 0 + "kb"}/s) ETA: ${eta ?? "00:00"}`;
+        })
+      </script>
+    </div>
+  </div>
+</body>
+</html>

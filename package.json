@@ -1,0 +1,28 @@
+{
+  "name": "yt-dlp-server",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/index.js",
+  "bin": {
+    "yt-dlp-server": "dist/index.js"
+  },
+  "scripts": {
+    "compile": "tsc",
+    "watch": "tsc -w",
+    "start": "node ."
+  },
+  "keywords": [],
+  "author": "ion",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/express": "^4.17.13",
+    "@types/node": "^17.0.18",
+    "@types/ws": "^8.2.2",
+    "typescript": "^4.5.5"
+  },
+  "dependencies": {
+    "express": "^4.17.2",
+    "ws": "^8.5.0",
+    "yt-dlp-wrap": "^2.3.11"
+  }
+}

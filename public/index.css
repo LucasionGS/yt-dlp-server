@@ -1,0 +1,77 @@
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  background: #002b36;
+  color: white;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.flex {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 64px;
+}
+
+input, button {
+  width: 25vw;
+  font-size: large;
+  padding: 10px;
+  border: none;
+  border-radius: 15px;
+}
+
+input[type="submit"], button {
+  background: #00adb5;
+  width: auto;
+  color: white;
+  font-weight: bold;
+}
+
+:is(input[type="submit"], button):hover {
+  background: #0087a3;
+  cursor: pointer;
+}
+
+:is(input, button).left {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+:is(input, button).right {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+:is(input, button).center {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+a {
+  text-decoration: none;
+  color: #17a2b8
+}
+
+a:hover {
+  color: #0070f3;
+}
+
+div.progress-bar {
+  width: 75vw;
+  height: 32px;
+  background: #00adb5;
+  border-radius: 15px;
+  margin-top: 10px;
+  overflow: hidden;
+}
+
+div.progress-bar-fill {
+  width: 0%;
+  height: 100%;
+  background: #0087a3;
+  border-radius: 15px;
+}
