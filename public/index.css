@@ -2,8 +2,7 @@ body {
   font-family: Arial, Helvetica, sans-serif;
   background: #002b36;
   color: white;
-  height: 100vh;
-  overflow: hidden;
+  overflow-x: hidden;
 }
 
 .flex {
@@ -14,12 +13,14 @@ body {
   padding: 64px;
 }
 
-input, button {
+input, button, select {
   width: 25vw;
   font-size: large;
   padding: 10px;
   border: none;
+  margin: none;
   border-radius: 15px;
+  /* box-sizing: border-box; */
 }
 
 input[type="submit"], button {
@@ -29,22 +30,26 @@ input[type="submit"], button {
   font-weight: bold;
 }
 
+select {
+  width: auto;
+}
+
 :is(input[type="submit"], button):hover {
   background: #0087a3;
   cursor: pointer;
 }
 
-:is(input, button).left {
+:is(input, button, select).left {
   border-top-right-radius: 0;
   border-bottom-right-radius: 0;
 }
 
-:is(input, button).right {
+:is(input, button, select).right {
   border-top-left-radius: 0;
   border-bottom-left-radius: 0;
 }
 
-:is(input, button).center {
+:is(input, button, select).center {
   border-top-left-radius: 0;
   border-bottom-left-radius: 0;
   border-top-right-radius: 0;
@@ -73,5 +78,27 @@ div.progress-bar-fill {
   width: 0%;
   height: 100%;
   background: #0087a3;
+  border-radius: 15px;
+}
+
+div.containers {
+  margin-bottom: 32px;
+}
+
+.iframe-container {
+  width: 100vw;
+  box-sizing: border-box;
+  display: block;
+  margin: auto;
+  border: none;
+  border-top: solid 1px #0087a3;
+  margin-top: 32px;
+}
+
+code {
+  display: block;
+  background: #000f13;
+  color: #00adb5;
+  padding: 10px;
   border-radius: 15px;
 }

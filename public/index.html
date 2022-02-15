@@ -15,35 +15,114 @@
         Enter a url to download the video.
         YouTube URLs or another <a target="_blank" href="https://ytdl-org.github.io/youtube-dl/supportedsites.html">supported site</a> URL can be used.
       </p>
-      <form id="download-form" action="./download" method="post">
-        <input class="left" type="url" name="url" placeholder="Enter URL" autocomplete="off" required>
+      <form id="download-form">
+        <input id="url-input" class="left" type="url" name="url" placeholder="Enter URL" autocomplete="off" required>
+        <select class="center" name="format" id="format">
+          <option value="auto">Auto</option>
+          <option value="audio-mp3">Audio MP3</option>
+          <option value="video-mp4">Video MP4</option>
+        </select>
         <button id="download-button" class="right">Download</button>
       </form>
+      <div id="containers">
+
+      </div>
+      <br>
+      <br>
+      <p>If you're interested in a shortcut for downloading videos, add this as the URL in a bookmark/bookmarklet!</p>
+      <code id="shortcut-bookmarklet"></code>
+      <p>Bookmarklets doesn't work on every site, so as an alternative you can create a search engine shortcut</p>
+      <code id="shortcut-search-engine"></code>
       <script>
         const form = document.querySelector("form");
         const downloadButton = document.querySelector("#download-button");
+        const containers = document.querySelector("#containers");
+        const urlInput = document.querySelector("#url-input");
+        const formatSelect = document.querySelector("#format");
         form.addEventListener("submit", async (e) => {
           e.preventDefault();
+          const formData = new FormData(form);
+          const url = formData.get("url");
+          const format = formData.get("format");
+          startDownload(url, format);
+        });
+
+        async function startDownload(url, format) {
           downloadButton.innerHTML = "Downloading...";
           downloadButton.disabled = true;
-          const formData = new FormData(form);
-          const response = await fetch(form.action, {
+          const response = await fetch("./download", {
             method: "POST",
             body: JSON.stringify({
-              url: formData.get("url")
+              url: url,
+              format: format
             }),
             headers: {
               "Content-Type": "application/json"
             }
-          }).then(res => res.json())
+          }).then(async res => {
+            if (res.ok) {
+              return res.json();
+            }
+            else {
+              alert("Error: " + await res.text());
+              return [];
+            }
+          })
           .catch(err => {
             console.log(err)
             alert("An error occurred. Please try again.");
             downloadButton.innerHTML = "Download";
             downloadButton.disabled = false;
           });
-          window.location.pathname = `/progress/${response.id}`;
-        });
+
+          // if (response.length === 1) {
+          //   return window.location.pathname = `/progress/${response[0]}`;
+          // }
+          for (let i = 0; i < response.length; i++) {
+            const id = response[i];
+            const iframe = document.createElement("iframe");
+            iframe.classList.add("iframe-container");
+            iframe.src = `/progress/${id}`;
+            iframe.addEventListener("load", () => {
+              iframe.style.height = iframe.contentWindow.document.body.scrollHeight + 32 + "px";
+            });
+
+            if (containers.children.length === 0) {
+              containers.appendChild(iframe);
+            }
+            else {
+              containers.insertBefore(iframe, containers.children[0]);
+            }
+          }
+
+          downloadButton.innerHTML = "Download";
+          downloadButton.disabled = false;
+          urlInput.value = "";
+        }
+
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has("url")) {
+          urlInput.value = urlParams.get("url");
+          if (urlParams.has("format")) {
+            formatSelect.value = urlParams.get("format");
+          }
+          setTimeout(() => {
+            startDownload(urlParams.get("url"), urlParams.get("format"));
+          }, 0);
+        }
+
+        const port = window.location.port === "" ? "" : ":" + window.location.port;
+
+        // log a bookmarklet
+        // const bookmarklet = `javascript:!function(){window.open("${window.location.protocol}//${window.location.host}:${window.location.port}?url="+encodeURIComponent(window.location.href)+"&format=auto","_blank")}();`
+        const bookmarklet = `javascript:void(window.open("${window.location.protocol}//${window.location.host}${port}?url="+encodeURIComponent(window.location.href)+"&format=auto","_blank"))`;
+        const bookmarkletInput = document.querySelector("#shortcut-bookmarklet");
+        bookmarkletInput.innerText = bookmarklet;
+
+        // log a search engine shortcut
+        const searchEngine = `https://ytd.ionnet.io${port}?url=%s&format=auto`;
+        const searchEngineInput = document.querySelector("#shortcut-search-engine");
+        searchEngineInput.innerText = searchEngine;
       </script>
     </div>
   </div>

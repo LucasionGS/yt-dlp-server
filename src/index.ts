@@ -5,13 +5,17 @@ import fs from "fs";
 import Path from "path";
 import WebSocket from "ws";
 import http from "http";
-import { fips } from "crypto";
+import compression from "compression";
 
 const PORT = process.env.PORT || 3333;
 const ytdlpDirectory = Path.resolve(os.homedir(), ".yt-dlp-server");
 const DOWNLOAD_DIR = process.env.DOWNLOAD_DIR || Path.join(ytdlpDirectory, "downloads");
 const ytdlpFile = Path.resolve(ytdlpDirectory, "yt-dlp");
 if (!fs.existsSync(DOWNLOAD_DIR)) fs.mkdirSync(DOWNLOAD_DIR, { recursive: true });
+// Clear the downloads directory on startup
+fs.readdirSync(DOWNLOAD_DIR).forEach(file => {
+  fs.unlinkSync(Path.join(DOWNLOAD_DIR, file));
+});
 
 const onGoingDownloads: { [key: string]: YTDownload } = {};
 const cachedDownloads: { [key: string]: YTDownload & {
@@ -44,6 +48,7 @@ interface YTDownload {
 
 const app = express();
 app.use(express.json());
+app.use(compression());
 const httpServer = http.createServer();
 httpServer.on("request", app);
 // Create web socket on same port as express
@@ -79,70 +84,23 @@ httpServer.on("listening", () => {
 
   app.post("/download", async (req, res) => {
     const url: string = req.body.url;
+    const format: MediaFormat = req.body.format || "auto";
     if (!url) {
       res.status(400).send("Missing url");
       return;
     }
 
-    let uniqueId = "";
-    while (uniqueId.length < 8 || onGoingDownloads[uniqueId]) {
-      uniqueId = Math.random().toString(36).substring(2, 10);
+    try {
+      const dls = await download(url, format);
+  
+      return res.json(
+        dls.map(dl => dl.id)
+      );
+    } catch (error: any) {
+      console.error(error);
+      const findError = (error.message + "").match(/ERROR:([\s\S]*?)\n\n/)[1];
+      res.status(500).send(findError);
     }
-
-    const info: {
-      filename: string;
-      extractor: string;
-      extractor_key: string;
-      fulltitle: string;
-      video_ext: string;
-    } = await yt.getVideoInfo(url);
-    // console.log(info);
-    const download = yt.exec(
-      [
-        url as string,
-        "--output",
-        Path.resolve(DOWNLOAD_DIR, uniqueId) + "." + info.video_ext,
-        // Export to mp4
-        "-f",
-        "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best"
-      ]
-    );
-
-    onGoingDownloads[uniqueId] = {
-      emitter: download,
-      id: uniqueId,
-      extension: info.video_ext,
-      name: info.filename,
-      title: info.fulltitle,
-      extractor: info.extractor_key || info.extractor,
-    };
-
-    download.on("close", (code) => {
-      console.log("Exit code:", code);
-      console.log("Download finished:", uniqueId);
-      cachedDownloads[uniqueId] = {
-        ...onGoingDownloads[uniqueId],
-        expires: Date.now() + 1000 * 60 * 60 * 12
-      };
-      delete onGoingDownloads[uniqueId];
-    });
-
-    // download.on("progress", (progress) => {
-    //   const {
-    //     currentSpeed,
-    //     eta,
-    //     percent,
-    //     totalSize
-    //   } = progress
-    //   console.log(`${percent}% ${currentSpeed} ${eta} ${totalSize}`);
-    // });
-
-    console.log("Downloading: " + url);
-
-
-    return res.json({
-      id: uniqueId
-    });
   });
 
   app.get("/progress/:id", (req, res) => {
@@ -215,4 +173,116 @@ httpServer.on("listening", () => {
       }
     });
   });
+  type MediaFormat = [
+    "auto",
+    "audio-mp3",
+    "audio-m4a",
+    "video-mp4",
+  ][number];
+
+  interface FileInfo {
+    filename: string;
+    extractor: string;
+    extractor_key: string;
+    fulltitle: string;
+    video_ext: string;
+    audio_ext: string;
+    webpage_url: string;
+    original_url: string;
+  }
+  
+  async function download(url: string, format: MediaFormat, existingInfo?: FileInfo | FileInfo[]): Promise<YTDownload[]> {
+    const downloads: YTDownload[] = [];
+    let uniqueId = "";
+    while (uniqueId.length < 8 || onGoingDownloads[uniqueId]) {
+      uniqueId = Math.random().toString(36).substring(2, 10);
+    }
+    
+    const info: FileInfo | FileInfo[] = existingInfo ?? await yt.getVideoInfo(url);
+
+    if (Array.isArray(info)) {
+      return (await Promise.all(info.map(async (info) => download(info.webpage_url || info.original_url, format, info)))).flat();
+    }
+  
+    let parameters: string[] = [];
+    let extensionOverride: string = null;
+    
+    switch (format) {
+      case "auto":
+        parameters.push(
+          "-f",
+          "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best"
+        );
+        extensionOverride = "mp4";
+        break;
+      case "audio-mp3":
+        parameters.push(
+          "-f",
+          "bestaudio",
+          "-x",
+          "--audio-format",
+          "mp3"
+        );
+        extensionOverride = "mp3";
+        break;
+      case "audio-m4a":
+        parameters.push(
+          "-f",
+          "bestaudio",
+          "-x",
+          "--audio-format",
+          "m4a"
+        );
+        extensionOverride = "m4a";
+        break;
+      case "video-mp4":
+        parameters.push(
+          "-f", "bestvideo[ext=mp4]"
+        );
+        extensionOverride = "mp4";
+        break;
+    
+      default:
+        break;
+    }
+  
+    extensionOverride ??= info.video_ext ?? info.audio_ext;
+    parameters = [
+      url as string,
+      "--output",
+      Path.resolve(DOWNLOAD_DIR, uniqueId) + "." + extensionOverride,
+      ...parameters
+    ];
+    
+    const ytdownload = yt.exec(parameters);
+  
+    onGoingDownloads[uniqueId] = {
+      emitter: ytdownload,
+      id: uniqueId,
+      extension: extensionOverride,
+      name: info.filename.replace(/\.[^/.]+$/, `.${extensionOverride}`),
+      title: info.fulltitle,
+      extractor: info.extractor_key || info.extractor,
+    };
+  
+    ytdownload.on("close", (code) => {
+      console.log("Exit code:", code);
+      console.log("Download finished:", uniqueId);
+      cachedDownloads[uniqueId] = {
+        ...onGoingDownloads[uniqueId],
+        expires: Date.now() + 1000 * 60 * 60 * 12
+      };
+      delete onGoingDownloads[uniqueId];
+    });
+
+    ytdownload.on("error", err => {
+      console.error(err);
+      delete onGoingDownloads[uniqueId];
+    });
+  
+    console.log("Downloading: " + url);
+
+    return [onGoingDownloads[uniqueId]];
+  }
 })();
+

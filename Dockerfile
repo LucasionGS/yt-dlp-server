@@ -1,6 +1,11 @@
 FROM ubuntu:latest
 WORKDIR /yt-dlp-server
 COPY . .
+
+SHELL [ "bash", "-c" ]
+# Set node into production mode
+RUN echo export NODE_ENV=production >> ~/.bash_profile
+RUN source ~/.bash_profile
 # Install nodejs 17.x
 RUN apt-get update
 RUN apt-get install -y curl

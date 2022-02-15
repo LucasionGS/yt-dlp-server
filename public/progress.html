@@ -6,12 +6,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="/index.css">
   <title>YouTube Downloader</title>
+  <style>
+    body {
+      overflow: hidden;
+    }
+  </style>
 </head>
 <body>
   <div class="container">
     <div class="flex">
-      <h1>Downloading video...</h1>
-      <h3 id="metadata-text"></h3>
+      <!-- <h1>Downloading video...</h1> -->
+      <h3 id="metadata-text">Preparing download...</h3>
       <p id="progress-text"></p>
       <div class="progress-bar">
         <div class="progress-bar-fill" style="width: 0%;"></div>
@@ -24,6 +29,7 @@
       </div>
       <script>
         const id = window.location.pathname.split('/').pop();
+        const progressBarContainer = document.querySelector("div.progress-bar");
         const progressBar = document.querySelector("div.progress-bar-fill");
         const metadataText = document.querySelector("#metadata-text");
         const progressText = document.querySelector("#progress-text");
@@ -63,6 +69,7 @@
           if (typeof code === "number") {
             progressBar.style.width = `100%`;
             progressText.innerHTML = `Finished downloading`;
+            progressBarContainer.hidden = true;
             ws.close();
             downloadButton.hidden = false;
             downloadButton.href = `/download/${id}`;
